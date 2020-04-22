@@ -1,55 +1,54 @@
-import requests
-from bs4 import BeautifulSoup
+import webbrowser
 import json
+import requests
+import time
+import urllib3
 
-def keysearch(key):
-    headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64)  AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'}
+urllib3.disable_warnings()
 
-    url = 'https://shop-usa.palaceskateboards.com/sitemap_products_1.xml?from=7643548742&to=1978623361117'
 
-    r = requests.get(url=url, headers=headers)
-
-    soup = BeautifulSoup(r.text, 'html.parser')
-
+def keysearch(keyword, size):
+    starttime = time.time()
+    url = 'https://shop-usa.palaceskateboards.com/products.json'
+    response = requests.get(url=url, verify=False)
+    data = json.loads(response.content.decode('utf-8'))
     mylist = []
     global mylists
     mylists = mylist
-    for items in soup.find_all("url"):
-        item = items.find("image:title")
-        if item is not None:
-            title = item.text
-            url = items.find("loc").text
-            time = items.find("lastmod").text
-            if keyword.lower() in title.lower():
-                print(title, url)
-                mylist.append(title)
-                purl = ('{}.json'.format(url))
-                r2 = requests.get(url=purl, headers=headers)
-                data = json.loads(r2.content)
-                for proditems in data['product']['variants']:
-                    variant = proditems['id']
-                    size = proditems['title']
-                    link = 'https://shop-usa.palaceskateboards.com/cart/{}:1'.format(variant)
-                    print('     ',size,'ATC:',link)
-                print()
-            else:
-                if keyword.lower() in url.lower():
-                    mylist.append(url)
-                    print('Keyword Not in Item Name, but Found {}'.format(url))
-        if item is None:
-            url2 = items.find("loc").text
-            if keyword.lower() in url2.lower():
-                    mylist.append(url2)
-                    print('Keyword Not in Item Name, but Found {}'.format(url2))
+    for items in data['products']:
+        if keyword in items['title'].lower():
+            mylist.append(items['title'])
+            print(items['title'], 'https://shop-usa.palaceskateboards.com/products/{}'.format(items['handle']))
+            itemurl = 'https://shop-usa.palaceskateboards.com/products/{}'.format(items['handle'])
+            print('Product Found at {} in {:.2f} Seconds'.format(time.strftime("%I:%M:%S"),time.time() - starttime))
+            print('Adding to cart...')
+            print('Taking you to queue...')
+            url2 = '{}.json'.format(itemurl)
+            response2 = requests.get(url=url2, verify=False)
+            data2 = json.loads(response2.content.decode('utf-8'))
+            for sizes in data2['product']['variants']:
+                if sizes['title'] == size:
+                    carturl = 'https://shop-usa.palaceskateboards.com/cart/{}:1'.format(sizes['id'])
+                    webbrowser.open(carturl)
 
 
-while True:
-    keyword = input('Enter Keyword, Hit Enter When Ready:').lower()
-    if keyword == "":
-        print('Program Ended')
-        break
-    keysearch(keyword)
-    print()
-    if len(mylists) == 0:
-        print('No Results for {}'.format(keyword).title())
-        print()
+
+keyword = input('Enter Keyword(s): ').lower()
+keylist = keyword.split(",")
+size = input('Enter Size, Hit Enter When Ready: ').upper()
+print()
+
+for keyword in keylist:
+    keysearch(keyword, size)
+
+for _ in range(240):
+    try:
+        if not mylists:
+            print('Product Not Found, Will Look Again...')
+            time.sleep(0.25)
+            keysearch(keyword, size)
+    except Exception as e:
+        print('{}: or Webstore Closed'.format(e))
+print('Program Ended')
+print('------------------------------------------------------------------------------------------------------------')
+
