@@ -22,13 +22,12 @@ def keysearch(keyword, size):
             itemurl = 'https://shop-usa.palaceskateboards.com/products/{}'.format(items['handle'])
             print('Product Found at {} in {:.2f} Seconds'.format(time.strftime("%I:%M:%S"),time.time() - starttime))
             print('Adding to cart...')
-            print('Taking you to queue...')
             url2 = '{}.json'.format(itemurl)
             response2 = requests.get(url=url2, verify=False)
             data2 = json.loads(response2.content.decode('utf-8'))
             for sizes in data2['product']['variants']:
                 if sizes['title'] == size:
-                    carturl = 'https://shop-usa.palaceskateboards.com/cart/{}:1'.format(sizes['id'])
+                    carturl = 'https://shop-usa.palaceskateboards.com/cart/add?id={}'.format(sizes['id'])
                     webbrowser.open(carturl)
 
 
@@ -41,7 +40,7 @@ print()
 for keyword in keylist:
     keysearch(keyword, size)
 
-for _ in range(240):
+for _ in range(600):
     try:
         if not mylists:
             print('Product Not Found, Will Look Again...')
